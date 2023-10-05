@@ -1,3 +1,3 @@
-const secretKey = "bruno123"
+const secretKey = "tccams2023"
 
 export default secretKey
