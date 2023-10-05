@@ -6,7 +6,7 @@ async function auth(req, res, next) {
     if (authHeader) {
         const token = authHeader.split(" ")[1]
         try{
-            jwt.verify(token, secretKey, (error, decoded) => {
+            jwt.verify(token, process.env.SECRET_KEY, (error, decoded) => {
                 if (error) {
                     return res.status(401).json({error: "Token invalid"})
                 }
