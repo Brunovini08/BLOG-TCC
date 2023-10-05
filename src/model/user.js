@@ -1,9 +1,14 @@
 import mongoose, {Schema} from "mongoose";
+import * as stream from "stream";
 
 const userSchema = new Schema({
     name: {
         type: String,
         required: true
+    },
+    biografy: {
+        type: String,
+        require: true
     },
     email: {
         type: String,
