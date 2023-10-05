@@ -18,12 +18,13 @@ class userController {
                 email: email,
                 password: password
             })
+
             await user.save()
             user.password = undefined
             res.setHeader("Content-Type", "application/json")
             res.status(201).json({
-                user,
-                token: createToken({id: user.id})
+                name:name,
+                email:email
             })
         } catch (error) {
             res.status(400)
@@ -45,8 +46,10 @@ class userController {
                     if (veryPass) {
                         user.password = undefined
                         res.setHeader("Content-Type", "application/json")
-                        return res.status(200).send("Login feito com sucesso")
-
+                        return res.status(200).json({
+                            email: email,
+                            token: createToken({id: user.id})
+                        })
                     } else {
                         res.setHeader("Content-Type", "application/json")
                         return res.status(400).send("Password incorrect or user is not register")
