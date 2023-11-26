@@ -1,20 +1,33 @@
 import Blog from "../model/blog.js";
 import Comment from "../model/comment.js";
-import Like from "../model/like.js";
-import * as buffer from "buffer";
+import User from "../model/user.js";
 
 
 class blogController {
+
     static async createBlog(req, res) {
         try {
-            const {title, description, comments} = req.body
+            const { title, content, base64 } = req.body
+            if (!title || !content || !base64) {
+                res.setHeader("Content-Type", "application/json")
+                return res.status(400).send("Preencha todos os campos")
+            }
             const createBlog = await Blog.create({
                 title: title,
-                description: description,
-                user: req.userId
+                content: content,
+                user: req.userId,
+                image: base64
             })
+            try {
+                const user = await User.findByIdAndUpdate(req.userId, {
+                    $push: { blogs: createBlog }
+                })
+                res.setHeader("Content-Type", "application/json")
+                res.status(201).json({ user, createBlog })
+            } catch (error) {
+                res.status(400).json(error)
+            }
 
-            res.status(201).json(createBlog)
         } catch (error) {
             res.status(400).send(error)
         }
@@ -33,7 +46,7 @@ class blogController {
     static async getBlogId(req, res) {
         try {
             const blogId = req.params.id
-            const blog = await Blog.findById({_id: blogId})
+            const blog = await Blog.findById({ _id: blogId }).populate("user")
             res.setHeader("Content-Type", "application/json")
             return res.status(200).json(blog)
         } catch (error) {
@@ -44,10 +57,16 @@ class blogController {
     static async putBlog(req, res) {
         try {
             const blogId = req.params.id
-            const {title, description} = req.body
-            const blogPut = await Blog.findByIdAndUpdate({_id: id}, {$set: {title, description}})
+            const { title, content, base64 } = req.body
+            const blogUpdate = await Blog.findByIdAndUpdate({ _id: blogId }, {
+                $set: {
+                    title: title,
+                    content: content,
+                    image: base64
+                }
+            })
             res.setHeader("Content-Type", "application/json")
-            return res.status(200).json(blogPut)
+            return res.status(203).json(blogUpdate)
         } catch (error) {
             res.status(400).send(error)
         }
@@ -56,7 +75,10 @@ class blogController {
     static async deleteBlog(req, res) {
         try {
             const blogId = req.params.id
-            const blogDelete = await Blog.findByIdAndDelete({_id: id})
+            const blogDelete = await Blog.findByIdAndDelete({ _id: blogId })
+            const user = await User.findByIdAndDelete(blogId, {
+                $pull: { blogs: blogId }
+            })
             res.setHeader("Content-Type", "application/json")
             return res.status(200).send("Blog deletado com sucesso")
         } catch (error) {
@@ -65,15 +87,20 @@ class blogController {
     }
 
     static async postCommentsBlog(req, res) {
-        const {text} = req.body
+        const { text } = req.body
         const blogId = req.params.id
-        const comment = await Comment.create({text: text})
+        const userId = req.userId
+        const comment = await Comment.create({
+            text: text,
+            blogId: blogId,
+            userId: userId
+        })
 
         try {
             await comment.save()
             try {
                 await Blog.findByIdAndUpdate(blogId, {
-                    $push: {comments: comment._id}
+                    $push: { comments: comment }
                 })
                 res.status(200).json(comment)
             } catch (error) {
@@ -84,75 +111,76 @@ class blogController {
         }
     }
 
-    static async commentGetBlog(req, res) {
+
+    static async getCommentsPost(req, res) {
         try {
             const blogId = req.params.id
-            const blogComment = await Blog.findById({_id: blogId}).populate("comments")
-            res.status(200).json({blogComment})
+            const comments = await Comment.find({ blogId: blogId }).populate("userId")
+            res.status(200).json(comments)
         } catch (error) {
             res.status(400).json(error)
         }
     }
 
-    static async unlikeInPost(req, res) {
-        const blogId = req.params.id
-        const verifyBlog = await Blog.findOne({_id: blogId})
-        if (verifyBlog) {
-            const like = await Like.findOne({userId: req.userId})
-            if (like) {
-                try {
-                    await Blog.findByIdAndUpdate(blogId, {
-                        $pull: {like: like._id}
-                    })
-                    res.setHeader("Content-Type", "application/json")
-                    return res.status(200).json("Voce descurtiu esse post")
-                } catch (error) {
-                    res.status(400).json(error)
-                }
-            }
 
-        }
-    }
 
     static async likeInPost(req, res) {
-        const blogId = req.params.id
-        const verifyBlog = await Blog.findOne({_id: blogId})
-        if (verifyBlog) {
-            const like = await Like.findOne({userId: req.userId})
-            if (!like) {
-                const createLike = await Like.create({blogId: blogId, userId: req.userId})
-                try {
-                    await createLike.save()
-                    try {
-                        await Blog.findByIdAndUpdate(blogId, {
-                            $push: {like: req.userId}
-                        })
-                        res.status(200).json("Voce curtiu esse post")
-                    } catch (error) {
-                        res.status(400).json(error)
-                    }
-                } catch (error) {
-                    res.status(400).json(error)
-                }
-                res.status(400).json("Voce ja curtiu esse post")
+        try {
+            const blogId = req.params.Blogid
+            const post = await Blog.findById({ _id: blogId }).populate("user")
+            if (!post.like.includes(req.userId)) {
+                await Blog.findByIdAndUpdate({ _id: blogId }, {
+                    $push: { like: req.userId }
+                })
+                await User.findByIdAndUpdate({ _id: req.userId }, {
+                    $push: { like: blogId }
+                })
+                res.setHeader("Content-Type", "application/json")
+                return res.status(200).json(post)
             }
+            await Blog.findByIdAndUpdate({ _id: blogId }, {
+                $pull: { like: req.userId }
+            })
+            await User.findByIdAndUpdate({ _id: req.userId }, {
+                $pull: { like: blogId }
+            })
+            res.setHeader("Content-Type", "application/json")
+            return res.status(203).json(post)
+        } catch (error) {
+            console.log(error)
         }
-        res.setHeader("Content-Type", "application/json")
-        return res.status(400).json("Blog nao encontrado")
     }
+
     static async likeGetBlog(req, res) {
         try {
-            const blogId = req.params.id
-            const blogComment = await Blog.findById({_id: blogId}).populate("like")
-            res.status(200).json({blogComment})
+            const blogLike = await Blog.findById({ _id: req.params.blogId }).populate("like")
+            res.status(200).json(blogLike)
         } catch (error) {
             res.status(400).json(error)
         }
     }
 
-    static async unlikeBlog(req, res) {
-
+    static async getBlogUser(req, res) {
+        try {
+            const id = req.params.id
+            const blogUser = await User.findById({ _id: id }).populate("blogs")
+            res.status(200).json(blogUser)
+        } catch (error) {
+            res.status(400).json(error)
+        }
     }
+
+    static async getBlogTitle(req, res) {
+        try {
+            const title = req.params.title
+            const blog = await Blog.find({ title: new RegExp(title, "gi") })
+            res.status(200).json(blog)
+        } catch (error) {
+            res.status(400).json(error)
+        }
+    }
+
+
 }
 
 export default blogController

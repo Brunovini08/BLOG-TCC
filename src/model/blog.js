@@ -6,7 +6,7 @@ const blogSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
-    description: {
+    content: {
         type: String,
         require: true
     },
@@ -19,9 +19,16 @@ const blogSchema = mongoose.Schema({
     like: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Like"
+            ref: "User"
         }
-    ]
+    ],
+    image: {
+        type: String
+    },
+    createdAt: {
+        type: Date,
+        default: new Date()
+    }
 })
 
 const Blog = mongoose.model("Blog", blogSchema)

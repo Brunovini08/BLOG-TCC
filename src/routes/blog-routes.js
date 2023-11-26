@@ -4,15 +4,16 @@ import auth from "../middlewares/auth.js";
 
 const routerBlog = Router()
 
-routerBlog.post("/create", auth, blogController.createBlog)
-routerBlog.get("/get", auth, blogController.getBlogs)
-routerBlog.get("/get/:id", auth, blogController.getBlogId)
+routerBlog.post("/create/:id", auth, blogController.createBlog)
+routerBlog.get("/get", blogController.getBlogs)
+routerBlog.get("/get/:id", blogController.getBlogId)
 routerBlog.put("/put/:id", auth, blogController.putBlog)
 routerBlog.delete("/delete/:id", auth, blogController.deleteBlog)
-routerBlog.put("/:id", auth, blogController.postCommentsBlog)
-routerBlog.get("/:id", auth, blogController.commentGetBlog)
-routerBlog.put("/like/:id", auth, blogController.likeInPost)
-routerBlog.get("/like/:id", auth, blogController.likeGetBlog)
-routerBlog.put("/unlike/:id", auth, blogController.unlikeInPost)
+routerBlog.put("/commentPost/:id", auth, blogController.postCommentsBlog)
+routerBlog.get("/getComments/:id", blogController.getCommentsPost)
+routerBlog.put("/like/:Blogid", auth, blogController.likeInPost)
+routerBlog.get("/getLikes/:blogId", auth, blogController.likeGetBlog)
+routerBlog.get("/getBlogUser/:id", blogController.getBlogUser)
+routerBlog.get("/getBlogTitle/:title", blogController.getBlogTitle)
 
 export default routerBlog

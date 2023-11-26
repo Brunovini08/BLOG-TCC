@@ -1,6 +1,4 @@
 import jwt from "jsonwebtoken";
-import secretKey from "../config/secretKey.js";
-
 async function auth(req, res, next) {
     const authHeader = req.headers.token
     if (authHeader) {
@@ -8,7 +6,7 @@ async function auth(req, res, next) {
         try{
             jwt.verify(token, process.env.SECRET_KEY, (error, decoded) => {
                 if (error) {
-                    return res.status(401).json({error: "Token invalid"})
+                    return res.status(403).json({error: "Token invalid"})
                 }
                 req.isAuthenticated = true
                 req.userId = decoded.id
@@ -17,11 +15,13 @@ async function auth(req, res, next) {
             })
 
         } catch (error) {
-            return res.status(403).send(error)
+            return res.status(401).send(error)
         }
-    } else {
-        res.status(401).json({ message: 'Missing'})
+    } else{
+        res.setHeader('Content-Type', 'application/json')
+        return res.status(403).json({ message: 'Missing'})
     }
+
 }
 
 export default auth

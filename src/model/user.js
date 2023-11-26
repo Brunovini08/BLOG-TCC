@@ -20,13 +20,28 @@ const userSchema = new Schema({
         required: true,
         minLength: 6
     },
+    createdAt: {
+        type: Date,
+        default: new Date()
+    },
+    localization: {
+        type: String
+    },
     blogs: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Blog"
         }
     ],
-    comments: []
+    image: {
+        type: String
+    },
+    like: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Blog"
+        }
+    ]
 })
 
 const User = mongoose.model("User", userSchema)
